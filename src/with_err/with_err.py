@@ -4,13 +4,16 @@ import sys
 import types
 from collections.abc import Callable
 from functools import wraps
-
-type ReturnWithErr[**P, R] = Callable[
-    Callable[P, R],  # pyright: ignore[reportInvalidTypeForm] # parse error
-    Callable[P, tuple[R | None, Exception | None]]]
+from typing import Protocol
 
 
-def with_err[**P, R](*exceptions: type[Exception]) -> ReturnWithErr[P, R]:
+# @type_check_only
+class RetWithErr[**P, R](Protocol):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+        ...
+
+
+def with_err[**P, R](*exceptions: type[Exception]) -> Callable[[Callable[P, R]], RetWithErr[P, R]]:
     """
     Wraps a function to return (result, Exception) instead of raising.
 
