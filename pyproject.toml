@@ -1,13 +1,13 @@
 [project]
 name = 'with-err'
-version = '0.0.1'
-description = ''
+version = '1.0.0'
+description = 'converting `try-except` pattern to Go-like `result, err` pattern.'
 readme = 'README.md'
-license = {file = 'LICENSE'}
+license = 'MIT'
 authors = [
-    # {name = '', email = ''},
+    {name = 'Chuan-Heng Hsiao', email = 'hsiao.chuanheng@gmail.com'},
 ]
-requires-python = ">=3.12"
+requires-python = '>=3.12'
 dependencies = [
 ]
 keywords = [
@@ -20,7 +20,7 @@ classifiers = [
 [project.urls]
 # Homepage      = ''
 # Documentation = ''
-# Repository    = ''
+Repository = 'https://github.com/chhsiao1981/with-err'
 # 'Bug Tracker' = ''
 # Changelog = ''
 
@@ -28,17 +28,17 @@ classifiers = [
 
 [build-system]
 requires = [
-    "uv_build>=0.12.5,<0.13.0",
+    'uv_build>=0.12.5,<0.13.0',
 ]
-build-backend = "uv_build"
+build-backend = 'uv_build'
 
 [dependency-groups]
 dev = [
-    "ruff==0.16.3",      # use ruff check --fix, not ruff format.
-    "pytest==9.1.1",
-    "pytest-cov==7.1.0",
-    "lefthook==2.1.10",
-    "autopep8==2.3.2",   # autopep8 is better in whitespace formatting.
+    'ruff==0.16.3',      # use ruff check --fix, not ruff format.
+    'pytest==9.1.1',
+    'pytest-cov==7.1.0',
+    'lefthook==2.1.10',
+    'autopep8==2.3.2',   # autopep8 is better in whitespace formatting.
 ]
 
 [tool.autopep8]
@@ -50,6 +50,6 @@ preview     = true
 
 [tool.ruff.lint]
 extend-select = [
-    "E",
-    "W",
+    'E',
+    'W',
 ]
