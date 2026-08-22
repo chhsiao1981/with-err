@@ -107,3 +107,15 @@ def test_with_err_my_json_loads2():
     assert re.search(r'test_with_err.py", line \d+, in my_json_loads3', err_str)
     assert re.search(r'test_with_err.py", line \d+, in my_json_loads2', err_str)
     assert re.search(r'test_with_err.py", line \d+, in test_with_err_my_json_loads2', err_str)
+
+
+def test_with_err_re_search():
+    '''
+    success.
+    '''
+    re_search_e = with_err()(re.search)
+
+    a = '{"test": 1}'
+    match, err = re_search_e(r'test', a)
+    assert err is None
+    assert match is not None
