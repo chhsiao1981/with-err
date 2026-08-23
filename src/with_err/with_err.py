@@ -51,7 +51,7 @@ def with_err(*args, **kwargs):
     return decorator
 
 
-def _make_wrapper[**P, R](func: Callable[P, R], exceptions: tuple[Exception]):
+def _make_wrapper[**P, R](func: Callable[P, R], exceptions: tuple[type[Exception], ...]):
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
         try:
