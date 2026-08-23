@@ -336,3 +336,54 @@ async def test_with_err_async_yield_success2():
 
     with pytest.raises(StopAsyncIteration):
         await anext(gen)
+
+
+@with_err
+async def my_async_stream3():
+    idx = 0
+
+    idx += 1
+    yield idx
+
+    idx += 1
+    yield idx
+
+    raise ValueError('invalid value')
+
+    # not reaching the following code block.
+    idx += 1
+    yield idx
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_yield3_for_loop():
+    async for each, err in my_async_stream3():
+        print(f'test_with_err_async_yield3_for_loop: each: {each} err: {err}')
+        assert each != 3
+
+        if each in [1, 2]:
+            assert each in [1, 2]
+            assert err is None
+        else:
+            assert each is None
+            assert isinstance(err, ValueError)
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_yield3_anext():
+    gen = my_async_stream3()
+
+    ret, err = await anext(gen)
+    assert ret == 1
+    assert err is None
+
+    ret, err = await anext(gen)
+    assert ret == 2
+    assert err is None
+
+    ret, err = await anext(gen)
+    assert ret is None
+    assert isinstance(err, ValueError)
+
+    with pytest.raises(StopAsyncIteration):
+        await anext(gen)
