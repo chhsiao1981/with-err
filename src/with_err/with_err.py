@@ -7,10 +7,12 @@ from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from functools import wraps
 from typing import Any, Protocol, overload
 
+type Result[R] = tuple[R, None] | tuple[None, Exception]
+
 
 # @type_check_only
 class CallableWithErr[**P, R](Protocol):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Result[R]:
         ...
 
 
@@ -18,7 +20,7 @@ class CallableWithErr[**P, R](Protocol):
 class CoroutineWithErr[**P, R](Protocol):
     def __call__(
             self, *args: P.args, **kwargs: P.kwargs,
-    ) -> Coroutine[Any, Any, tuple[R | None, Exception | None]]:
+    ) -> Coroutine[Any, Any, Result[R]]:
         ...
 
 
@@ -26,7 +28,7 @@ class CoroutineWithErr[**P, R](Protocol):
 class GeneratorWithErr[**P, R](Protocol):
     def __call__(
             self, *args: P.args, **kwargs: P.kwargs,
-    ) -> Generator[tuple[R | None, Exception | None], None, None]:
+    ) -> Generator[Result[R], None, None]:
         ...
 
 
@@ -34,11 +36,13 @@ class GeneratorWithErr[**P, R](Protocol):
 class AsyncGeneratorWithErr[**P, R](Protocol):
     def __call__(
             self, *args: P.args, **kwargs: P.kwargs
-    ) -> AsyncGenerator[tuple[R | None, Exception | None], None]:
+    ) -> AsyncGenerator[Result[R], None]:
         ...
 
 
 # @type_check_only
+
+
 class Decorator(Protocol):
     '''
     helper protocol for indirect decorators
@@ -151,7 +155,7 @@ def _make_sync_wrapper[**P, R](
         exceptions: tuple[type[Exception], ...],
 ) -> CallableWithErr[P, R]:
     @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> Result[R]:
         try:
             return func(*args, **kwargs), None
         except exceptions as e:

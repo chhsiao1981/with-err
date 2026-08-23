@@ -405,7 +405,7 @@ def my_json_re5(a: str):
 
 def test_with_err_continuous_with_err():
     '''
-    multi-layer functions.
+    multi-layer @with_err functions with.
     '''
     a = '{"test": }'
     the_struct, err = my_json_re4(a)
@@ -422,3 +422,23 @@ def test_with_err_continuous_with_err():
     assert re.search(r'test_with_err.py", line \d+, in my_json_re5', err_str)
     assert re.search(r're/__init__.py", line \d+, in search', err_str)
     assert 're.PatternError: unterminated character set at position 0' in err_str
+
+
+@with_err
+def my_list_func(is_good=False):
+    if not is_good:
+        raise ValueError('not good')
+    return [1, 2]
+
+
+def test_with_err_list_func():
+    data, err = my_list_func()
+    assert data is None
+    assert isinstance(err, ValueError)
+
+    data, err = my_list_func(True)
+    assert data is not None
+    assert err is None
+    item1, item2 = data
+    assert item1 == 1
+    assert item2 == 2

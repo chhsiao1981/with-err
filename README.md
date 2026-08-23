@@ -177,6 +177,27 @@ async for each, err in my_stream():
         assert isinstance(err, ValueError)
 ```
 
+### Functions Returning `list` or `tuple`
+
+```python
+@with_err
+def my_list_func(is_good=False):
+    if not is_good:
+        raise ValueError('not good')
+    return [1, 2]
+
+data, err = my_list_func()
+assert data is None
+assert isinstance(err, ValueError)
+
+data, err = my_list_func(True)
+assert data is not None
+assert err is None
+item1, item2 = data
+assert item1 == 1
+assert item2 == 2
+```
+
 ### Get `err` Traceback Stack
 
 ```python
