@@ -125,7 +125,6 @@ assert data is None
 ```python
 from with_err import with_err
 
-@with_err
 async def async_fetch_data(endpoint: str) -> dict[str, str]:
     if endpoint == "bad":
         raise ValueError("Failed to reach endpoint")
@@ -168,7 +167,7 @@ async def my_async_stream():
     yield 1
     raise ValueError('invalid')
 
-async for each, err in my_stream():
+async for each, err in my_async_stream():
     if each == 1:
         assert each == 1
         assert err is None
@@ -292,3 +291,12 @@ assert re.search(r', line \d+, in json_loads_e', err_str)
 assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
 assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
 ```
+
+## Acknowledgement
+
+The implementation is based on the following Gemini / ChatGPT suggestions:
+
+[https://share.gemini.google/BDvazjX2RWsE](https://share.gemini.google/BDvazjX2RWsE)
+[https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65](https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65)
+[https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd](https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd)
+[https://chatgpt.com/share/6a8b53e2-570c-83ea-94e4-b312d8048059](https://chatgpt.com/share/6a8b53e2-570c-83ea-94e4-b312d8048059)

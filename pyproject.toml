@@ -11,6 +11,7 @@ requires-python = '>=3.12'
 dependencies = [
 ]
 keywords = [
+    'error-handling',
 ]
 classifiers = [
     'Programming Language :: Python :: 3',
@@ -18,11 +19,11 @@ classifiers = [
 ]
 
 [project.urls]
-# Homepage      = ''
-# Documentation = ''
-Repository = 'https://github.com/chhsiao1981/with-err'
-# 'Bug Tracker' = ''
-# Changelog = ''
+Homepage      = 'https://github.com/chhsiao1981/with-err'
+Documentation = 'https://github.com/chhsiao1981/with-err/blob/main/README.md'
+Repository    = 'https://github.com/chhsiao1981/with-err'
+'Bug Tracker' = 'https://github.com/chhsiao1981/with-err/issues'
+Changelog     = 'https://github.com/chhsiao1981/with-err/releases'
 
 [project.scripts]
 
