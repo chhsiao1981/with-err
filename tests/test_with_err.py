@@ -47,9 +47,9 @@ def test_with_err_exception():
     print(f'test_with_err: exception: err_str: {err_str}')
 
     assert 'json.decoder.JSONDecodeError: Expecting value: line 1 column 10 (char 9)' in err_str
+    assert re.search(r'test_with_err.py", line \d+, in test_with_err_exception', err_str)
     assert re.search(r'with_err.py", line \d+, in wrapper', err_str)
     assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
-    assert re.search(r'test_with_err.py", line \d+, in test_with_err_exception', err_str)
 
 
 def test_with_err_re_pattern_error_on_json():
@@ -76,9 +76,9 @@ def test_with_err_my_json_loads():
     print(f'test_with_err: my_json_loads: err_str: {err_str}')
 
     assert 'json.decoder.JSONDecodeError: Expecting value: line 1 column 10 (char 9)' in err_str
+    assert re.search(r'test_with_err.py", line \d+, in test_with_err_my_json_loads', err_str)
     assert re.search(r'with_err.py", line \d+, in wrapper', err_str)
     assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
-    assert re.search(r'test_with_err.py", line \d+, in test_with_err_my_json_loads', err_str)
 
 
 def test_with_err_my_json_loads2():
@@ -97,11 +97,11 @@ def test_with_err_my_json_loads2():
     print(f'test_with_err: my_json_loads2: err_str: {err_str}')
 
     assert 'json.decoder.JSONDecodeError: Expecting value: line 1 column 10 (char 9)' in err_str
+    assert re.search(r'test_with_err.py", line \d+, in test_with_err_my_json_loads2', err_str)
     assert re.search(r'with_err.py", line \d+, in wrapper', err_str)
-    assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
     assert re.search(r'test_with_err.py", line \d+, in my_json_loads3', err_str)
     assert re.search(r'test_with_err.py", line \d+, in my_json_loads2', err_str)
-    assert re.search(r'test_with_err.py", line \d+, in test_with_err_my_json_loads2', err_str)
+    assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
 
 
 def test_with_err_re_search():
@@ -154,9 +154,14 @@ async def test_with_err_async_err():
     '''
     async_fetch_data_e = with_err(async_fetch_data)
     res, err = await async_fetch_data_e("bad")
-
+    err_stack = get_err_strs(err)
+    err_str = '\n'.join(err_stack)
+    print(f'err_str: {err_str}')
     assert isinstance(err, ValueError)
     assert res is None
+    assert re.search(r'test_with_err.py", line \d+, in test_with_err_async_err', err_str)
+    assert re.search(r'with_err.py", line \d+, in async_wrapper', err_str)
+    assert re.search(r'test_with_err.py", line \d+, in async_fetch_data', err_str)
 
 
 @pytest.mark.asyncio
