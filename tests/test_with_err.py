@@ -103,7 +103,7 @@ def my_json_loads(a: str):
     return json.loads(a)
 
 
-def test_with_err_my_json_loads():
+def test_with_err_decorator():
     '''
     decorator.
     '''
@@ -129,7 +129,7 @@ def my_json_loads3(a: str):
     return json.loads(a)
 
 
-def test_with_err_my_json_loads2():
+def test_with_err_multilayer_function():
     '''
     multi-layer functions.
     '''
@@ -151,11 +151,11 @@ def test_with_err_my_json_loads2():
     assert 'json.decoder.JSONDecodeError: Expecting value: line 1 column 10 (char 9)' in err_str
 
 
-def test_with_err_re_search():
+def test_with_err_typed_output():
     '''
     success.
     '''
-    re_search_e = with_err(re.search)
+    re_search_e = with_err()(re.search)
 
     a = '{"test": 1}'
     match, err = re_search_e(r'test', a)
@@ -224,7 +224,7 @@ async def test_with_err_async_success():
 
 
 @pytest.mark.asyncio
-async def test_with_err_async_err2():
+async def test_with_err_async_err_specified_error():
     '''
     test async err (ValueError)
     '''
@@ -387,3 +387,38 @@ async def test_with_err_async_yield3_anext():
 
     with pytest.raises(StopAsyncIteration):
         await anext(gen)
+
+
+@with_err
+def my_json_re4(a: str):
+    data, err = my_json_re5(a)
+    if err is not None:
+        raise err
+
+    return data
+
+
+@with_err
+def my_json_re5(a: str):
+    return re.search(r'[asdas', a)
+
+
+def test_with_err_continuous_with_err():
+    '''
+    multi-layer functions.
+    '''
+    a = '{"test": }'
+    the_struct, err = my_json_re4(a)
+
+    assert the_struct is None
+    assert err is not None
+    err_str = "\n".join(get_err_strs(err))
+    print(f'test_with_err: my_json_loads4: err_str: {err_str}')
+
+    assert isinstance(err, re.PatternError)
+
+    assert re.search(r'with_err.py", line \d+, in wrapper', err_str)
+    assert re.search(r'test_with_err.py", line \d+, in my_json_re4', err_str)
+    assert re.search(r'test_with_err.py", line \d+, in my_json_re5', err_str)
+    assert re.search(r're/__init__.py", line \d+, in search', err_str)
+    assert 're.PatternError: unterminated character set at position 0' in err_str

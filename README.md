@@ -39,7 +39,7 @@ import json
 from with_err import with_err
 
 @with_err
-def json_loads_e(a: str | bytes | bytearray):
+def json_loads_e(a: str):
     return json.loads(a)
 
 data, err = json_loads_e('{"a": 1}')
@@ -60,7 +60,7 @@ import json
 from with_err import with_err
 
 @with_err(json.decoder.JSONDecodeError)
-def json_loads_e(a: str | bytes | bytearray):
+def json_loads_e(a: str):
     return json.loads(a)
 
 data, err = json_loads_e('{"a": 1}')
@@ -80,7 +80,7 @@ import re
 from with_err import with_err
 
 @with_err(re.PatternError)
-def json_loads_e(a: str | bytes | bytearray):
+def json_loads_e(a: str):
     return json.loads(a)
 
 data, err = json_loads_e('{"a": }')
@@ -185,7 +185,7 @@ from with_err import with_err, get_err_strs
 
 
 @with_err
-def json_loads_e(a: str | bytes | bytearray):
+def json_loads_e(a: str):
     return json.loads(a)
 
 _data, err = json_loads_e('{"a": 1}')
@@ -201,7 +201,7 @@ from with_err import with_err, get_err_strs
 
 
 @with_err
-def json_loads_e(a: str | bytes | bytearray):
+def json_loads_e(a: str):
     return json.loads(a)
 
 _data, err = json_loads_e('{"a": }')
@@ -223,12 +223,43 @@ from with_err import with_err, get_err_strs, raise_err
 
 
 @with_err
-def json_loads_e(a: str | bytes | bytearray):
+def json_loads_e(a: str):
     return json.loads(a)
 
 def gen_err():
     data, err = json_loads_e('{"a": }')
     return data, raise_err(err)
+
+data, err = gen_err()
+err_stack = get_err_strs(err)
+err_str = '\n'.join(err_stack)
+assert isinstance(err, json.decoder.JSONDecodeError)
+assert len(err_stack) > 0
+assert re.search(r', line \d+, in gen_err', err_str)
+assert re.search(r', line \d+, in json_loads_e', err_str)
+assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
+assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
+```
+
+### Raise `err` with Continuous `@with_err`
+
+```python
+import json
+import re
+from with_err import with_err, get_err_strs, raise_err
+
+
+@with_err
+def json_loads_e(a: str):
+    return json.loads(a)
+
+
+@with_err
+def gen_err():
+    data, err = json_loads_e('{"a": }')
+    if err is not None:
+        raise err
+    return data
 
 data, err = gen_err()
 err_stack = get_err_strs(err)
