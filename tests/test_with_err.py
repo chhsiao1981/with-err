@@ -138,3 +138,34 @@ def test_with_err_direct_wrapper_err():
     match, err = re_search_e(r'[test', a)
     assert isinstance(err, re.PatternError)
     assert match is None
+
+
+# async test
+async def async_fetch_data(endpoint: str) -> dict[str, str]:
+    if endpoint == "bad":
+        raise ValueError("Failed to reach endpoint")
+    return {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_err():
+    '''
+    test async err
+    '''
+    async_fetch_data_e = with_err(async_fetch_data)
+    res, err = await async_fetch_data_e("bad")
+
+    assert isinstance(err, ValueError)
+    assert res is None
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_success():
+    '''
+    test async err
+    '''
+    async_fetch_data_e = with_err(async_fetch_data)
+    res, err = await async_fetch_data_e("good")
+
+    assert err is None
+    assert res == {'status': 'ok'}

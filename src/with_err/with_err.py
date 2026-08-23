@@ -1,15 +1,26 @@
 # https://share.gemini.google/BDvazjX2RWsE
 
+import inspect
 import sys
 import types
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import Protocol, overload
+from typing import Any, Protocol, overload
 
 
 # @type_check_only
 class CallableWithErr[**P, R](Protocol):
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+        ...
+
+
+# @type_check_only
+class CoroutineWithErr[**P, R](Protocol):
+    def __call__(
+            self,
+            *args: P.args,
+            **kwargs: P.kwargs,
+    ) -> Coroutine[Any, Any, tuple[R | None, Exception | None]]:
         ...
 
 
@@ -21,11 +32,20 @@ def with_err[**P, R](
     ...
 
 
+# Async Direct
+@overload
+def with_err[**P, R](
+    __func: Callable[P, Coroutine[Any, Any, R]], /
+) -> CoroutineWithErr[P, R]:
+    # Overload 2: Async call with a function -> with_err(func)
+    ...
+
+
 @overload
 def with_err[**P, R](
     *exceptions: type[Exception],
 ) -> Callable[[Callable[P, R]], CallableWithErr[P, R]]:
-    # Overload 2: Called with exception types or no args -> with_err(*exceptions)
+    # Overload 3: Called with exception types or no args -> with_err(*exceptions)(func)
     ...
 
 
@@ -52,25 +72,48 @@ def with_err(*args):
 
 
 def _make_wrapper[**P, R](func: Callable[P, R], exceptions: tuple[type[Exception], ...]):
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
-        try:
-            return func(*args, **kwargs), None
-        except exceptions as e:
-            # 1. Fetch exception's original internal traceback.
-            tb = sys.exc_info()[2]
+    if inspect.iscoroutinefunction(func):
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            try:
+                result = await func(*args, **kwargs)
+                return result, None
+            except exceptions as err:
+                # 1. Fetch exception's original internal traceback.
+                tb = sys.exc_info()[2]
 
-            # 2. Capture the caller frame executing func.
-            caller_frame = sys._getframe(1)
+                # 2. Capture the caller frame executing func.
+                caller_frame = sys._getframe(1)
 
-            # 3. Create a parent traceback frame and link it above 'tb'.
-            combined_tb = types.TracebackType(
-                tb_next=tb,
-                tb_frame=caller_frame,
-                tb_lasti=caller_frame.f_lasti,
-                tb_lineno=caller_frame.f_lineno
-            )
+                # 3. Create a parent traceback frame and link it above 'tb'.
+                combined_tb = types.TracebackType(
+                    tb_next=tb,
+                    tb_frame=caller_frame,
+                    tb_lasti=caller_frame.f_lasti,
+                    tb_lineno=caller_frame.f_lineno,
+                )
+                return None, err.with_traceback(combined_tb)
+        return async_wrapper
+    else:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+            try:
+                return func(*args, **kwargs), None
+            except exceptions as e:
+                # 1. Fetch exception's original internal traceback.
+                tb = sys.exc_info()[2]
 
-            # 4. Attach the combined traceback back to the error instance
-            return None, e.with_traceback(combined_tb)
-    return wrapper
+                # 2. Capture the caller frame executing func.
+                caller_frame = sys._getframe(1)
+
+                # 3. Create a parent traceback frame and link it above 'tb'.
+                combined_tb = types.TracebackType(
+                    tb_next=tb,
+                    tb_frame=caller_frame,
+                    tb_lasti=caller_frame.f_lasti,
+                    tb_lineno=caller_frame.f_lineno
+                )
+
+                # 4. Attach the combined traceback back to the error instance
+                return None, e.with_traceback(combined_tb)
+        return wrapper

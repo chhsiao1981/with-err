@@ -1,5 +1,7 @@
 pre-commit:
   jobs:
+    - name: uv sync
+      run: uv sync
     - name: lint
       run: ruff check
     - name: test
