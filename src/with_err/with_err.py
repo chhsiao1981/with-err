@@ -1,9 +1,9 @@
 # https://share.gemini.google/BDvazjX2RWsE
+# https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65
+# https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd
 
 import inspect
-import sys
-import types
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from functools import wraps
 from typing import Any, Protocol, overload
 
@@ -17,39 +17,103 @@ class CallableWithErr[**P, R](Protocol):
 # @type_check_only
 class CoroutineWithErr[**P, R](Protocol):
     def __call__(
-            self,
-            *args: P.args,
-            **kwargs: P.kwargs,
+            self, *args: P.args, **kwargs: P.kwargs,
     ) -> Coroutine[Any, Any, tuple[R | None, Exception | None]]:
+        ...
+
+
+# @type_check_only
+class GeneratorWithErr[**P, R](Protocol):
+    def __call__(
+            self, *args: P.args, **kwargs: P.kwargs,
+    ) -> Generator[tuple[R | None, Exception | None], None, None]:
+        ...
+
+
+# @type_check_only
+class AsyncGeneratorWithErr[**P, R](Protocol):
+    def __call__(
+            self, *args: P.args, **kwargs: P.kwargs
+    ) -> AsyncGenerator[tuple[R | None, Exception | None], None]:
+        ...
+
+
+# @type_check_only
+class Decorator(Protocol):
+    '''
+    helper protocol for indirect decorators
+    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+        if Callable returns Any.
+    '''
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, Coroutine[Any, Any, R]], /
+    ) -> CoroutineWithErr[P, R]: ...
+
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, AsyncGenerator[R, Any]], /
+    ) -> AsyncGeneratorWithErr[P, R]: ...
+
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, Generator[R, Any, Any]], /
+    ) -> GeneratorWithErr[P, R]: ...
+
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, R], /
+    ) -> CallableWithErr[P, R]:
+        # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+        #     if Callable returns Any.
         ...
 
 
 @overload
 def with_err[**P, R](
-    func: Callable[P, R], /
-) -> CallableWithErr[P, R]:
-    # Overload 1: Called directly with a function -> with_err(func)
+        *exceptions: type[Exception],
+) -> Decorator:
+    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
     ...
 
 
-# Async Direct
 @overload
 def with_err[**P, R](
-    __func: Callable[P, Coroutine[Any, Any, R]], /
+        func: Callable[P, Coroutine[Any, Any, R]], /
 ) -> CoroutineWithErr[P, R]:
-    # Overload 2: Async call with a function -> with_err(func)
+    # Overload 4: Async call with a function -> with_err(func)
+    # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+    #     if Callable returns Any.
     ...
 
 
 @overload
 def with_err[**P, R](
-    *exceptions: type[Exception],
-) -> Callable[[Callable[P, R]], CallableWithErr[P, R]]:
-    # Overload 3: Called with exception types or no args -> with_err(*exceptions)(func)
+        func: Callable[P, AsyncGenerator[R, Any]], /
+) -> AsyncGeneratorWithErr[P, R]:
+    # Overload 2: async generator directly with a function -> with_err(func)
     ...
 
 
-def with_err(*args):
+@overload
+def with_err[**P, R](
+        func: Callable[P, Generator[R, Any, Any]], /
+) -> GeneratorWithErr[P, R]:
+    # Overload 3: generator directly with a function -> with_err(func)
+    ...
+
+
+@overload
+def with_err[**P, R](
+        func: Callable[P, R], /
+) -> CallableWithErr[P, R]:
+    # Overload 5: Called directly with a function -> with_err(func)
+    # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+    #     if Callable returns Any.
+    ...
+
+
+def with_err[**P, R](*args):
     """
     Wraps a function to return (result, Exception) instead of raising.
     """
@@ -71,49 +135,77 @@ def with_err(*args):
     return decorator
 
 
-def _make_wrapper[**P, R](func: Callable[P, R], exceptions: tuple[type[Exception], ...]):
+def _make_wrapper(func, exceptions):
     if inspect.iscoroutinefunction(func):
-        @wraps(func)
-        async def async_wrapper(*args, **kwargs):
-            try:
-                result = await func(*args, **kwargs)
-                return result, None
-            except exceptions as err:
-                # 1. Fetch exception's original internal traceback.
-                tb = sys.exc_info()[2]
-
-                # 2. Capture the caller frame executing func.
-                caller_frame = sys._getframe(1)
-
-                # 3. Create a parent traceback frame and link it above 'tb'.
-                combined_tb = types.TracebackType(
-                    tb_next=tb,
-                    tb_frame=caller_frame,
-                    tb_lasti=caller_frame.f_lasti,
-                    tb_lineno=caller_frame.f_lineno,
-                )
-                return None, err.with_traceback(combined_tb)
-        return async_wrapper
+        return _make_async_wrapper(func, exceptions)
+    elif inspect.isasyncgenfunction(func):
+        return _make_async_gen_wrapper(func, exceptions)
+    elif inspect.isgeneratorfunction(func):
+        return _make_sync_gen_wrapper(func, exceptions)
     else:
-        @wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+        return _make_sync_wrapper(func, exceptions)
+
+
+def _make_sync_wrapper[**P, R](
+        func: Callable[P, R],
+        exceptions: tuple[type[Exception], ...],
+) -> CallableWithErr[P, R]:
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[R | None, Exception | None]:
+        try:
+            return func(*args, **kwargs), None
+        except exceptions as e:
+            return None, e
+    return wrapper
+
+
+def _make_async_wrapper[**P, R](
+        func: Callable[P, Coroutine[Any, Any, R]],
+        exceptions: tuple[type[Exception], ...]
+) -> CoroutineWithErr[P, R]:
+    @wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        try:
+            result = await func(*args, **kwargs)
+            return result, None
+        except exceptions as e:
+            return None, e
+    return async_wrapper
+
+
+def _make_sync_gen_wrapper[**P, R](
+        func: Callable[P, Generator[R, Any, Any]],
+        exceptions: tuple[type[Exception], ...],
+) -> GeneratorWithErr[P, R]:
+    @wraps(func)
+    def sync_gen_wrapper(*args, **kwargs):
+        gen = func(*args, **kwargs)
+        while True:
             try:
-                return func(*args, **kwargs), None
-            except exceptions as e:
-                # 1. Fetch exception's original internal traceback.
-                tb = sys.exc_info()[2]
+                item = next(gen)
+                yield item, None
+            except StopIteration:
+                return
+            except exceptions as err:
+                yield None, err
+                return
+    return sync_gen_wrapper
 
-                # 2. Capture the caller frame executing func.
-                caller_frame = sys._getframe(1)
 
-                # 3. Create a parent traceback frame and link it above 'tb'.
-                combined_tb = types.TracebackType(
-                    tb_next=tb,
-                    tb_frame=caller_frame,
-                    tb_lasti=caller_frame.f_lasti,
-                    tb_lineno=caller_frame.f_lineno
-                )
-
-                # 4. Attach the combined traceback back to the error instance
-                return None, e.with_traceback(combined_tb)
-        return wrapper
+def _make_async_gen_wrapper[**P, R](
+        func: Callable[P, AsyncGenerator[R, Any]],
+        exceptions: tuple[type[Exception], ...],
+) -> AsyncGeneratorWithErr[P, R]:
+    @wraps(func)
+    async def async_gen_wrapper(*args, **kwargs):
+        gen = func(*args, **kwargs)
+        while True:
+            try:
+                item = await anext(gen)
+                yield item, None
+            except StopAsyncIteration:
+                return
+            except exceptions as err:
+                yield None, err
+                return
+    return async_gen_wrapper
