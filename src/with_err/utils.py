@@ -1,5 +1,3 @@
-# https://share.gemini.google/BDvazjX2RWsE
-
 import traceback
 
 

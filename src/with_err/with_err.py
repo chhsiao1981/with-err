@@ -1,7 +1,3 @@
-# https://share.gemini.google/BDvazjX2RWsE
-# https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65
-# https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd
-
 import inspect
 from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from functools import wraps
@@ -117,7 +113,7 @@ def with_err[**P, R](
     ...
 
 
-def with_err[**P, R](*args):
+def with_err(*args):
     """
     Wraps a function to return (result, Exception) instead of raising.
     """

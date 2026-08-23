@@ -1,5 +1,3 @@
-# https://chatgpt.com/c/6a8b3620-9cb0-83ea-baf6-1ab4a31e473b
-
 import inspect
 import types
 
