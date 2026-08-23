@@ -183,6 +183,8 @@ async for each, err in my_stream():
 import json
 from with_err import with_err, get_err_strs
 
+
+@with_err
 def json_loads_e(a: str | bytes | bytearray):
     return json.loads(a)
 
@@ -197,6 +199,8 @@ import json
 import re
 from with_err import with_err, get_err_strs
 
+
+@with_err
 def json_loads_e(a: str | bytes | bytearray):
     return json.loads(a)
 
@@ -217,6 +221,8 @@ import json
 import re
 from with_err import with_err, get_err_strs, raise_err
 
+
+@with_err
 def json_loads_e(a: str | bytes | bytearray):
     return json.loads(a)
 
