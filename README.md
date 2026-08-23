@@ -296,7 +296,7 @@ assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
 
 The implementation is based on the following Gemini / ChatGPT suggestions:
 
-[https://share.gemini.google/BDvazjX2RWsE](https://share.gemini.google/BDvazjX2RWsE)
-[https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65](https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65)
-[https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd](https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd)
-[https://chatgpt.com/share/6a8b53e2-570c-83ea-94e4-b312d8048059](https://chatgpt.com/share/6a8b53e2-570c-83ea-94e4-b312d8048059)
+* [https://share.gemini.google/BDvazjX2RWsE](https://share.gemini.google/BDvazjX2RWsE)
+* [https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65](https://chatgpt.com/share/6a8b20b2-4ad4-83ea-9926-4f204ebc4e65)
+* [https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd](https://chatgpt.com/share/6a8b209f-a6f4-83ea-a7da-5d4bf54e4ecd)
+* [https://chatgpt.com/share/6a8b53e2-570c-83ea-94e4-b312d8048059](https://chatgpt.com/share/6a8b53e2-570c-83ea-94e4-b312d8048059)
