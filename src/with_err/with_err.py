@@ -29,7 +29,7 @@ def with_err[**P, R](
     ...
 
 
-def with_err(*args, **kwargs):
+def with_err(*args):
     """
     Wraps a function to return (result, Exception) instead of raising.
     """
