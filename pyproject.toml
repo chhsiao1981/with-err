@@ -1,6 +1,6 @@
 [project]
 name = 'with-err'
-version = '1.2.0'
+version = '1.2.1'
 description = 'converting `try-except` pattern to Go-like `result, err` pattern.'
 readme = 'README.md'
 license = 'MIT'
