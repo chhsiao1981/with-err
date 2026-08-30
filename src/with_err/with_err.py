@@ -7,38 +7,6 @@ type Result[R] = tuple[R, None] | tuple[None, Exception]
 
 
 # @type_check_only
-class CallableWithErr[**P, R](Protocol):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Result[R]:
-        ...
-
-
-# @type_check_only
-class CoroutineWithErr[**P, R](Protocol):
-    def __call__(
-            self, *args: P.args, **kwargs: P.kwargs,
-    ) -> Coroutine[Any, Any, Result[R]]:
-        ...
-
-
-# @type_check_only
-class GeneratorWithErr[**P, R](Protocol):
-    def __call__(
-            self, *args: P.args, **kwargs: P.kwargs,
-    ) -> Generator[Result[R], None, None]:
-        ...
-
-
-# @type_check_only
-class AsyncGeneratorWithErr[**P, R](Protocol):
-    def __call__(
-            self, *args: P.args, **kwargs: P.kwargs
-    ) -> AsyncGenerator[Result[R], None]:
-        ...
-
-
-# @type_check_only
-
-
 class Decorator(Protocol):
     '''
     helper protocol for indirect decorators
@@ -47,26 +15,21 @@ class Decorator(Protocol):
     '''
     @overload
     def __call__[**P, R](
-        self, func: Callable[P, Coroutine[Any, Any, R]], /
-    ) -> CoroutineWithErr[P, R]: ...
-
-    @overload
-    def __call__[**P, R](
-        self, func: Callable[P, AsyncGenerator[R, Any]], /
-    ) -> AsyncGeneratorWithErr[P, R]: ...
-
-    @overload
-    def __call__[**P, R](
-        self, func: Callable[P, Generator[R, Any, Any]], /
-    ) -> GeneratorWithErr[P, R]: ...
-
-    @overload
-    def __call__[**P, R](
         self, func: Callable[P, R], /
-    ) -> CallableWithErr[P, R]:
+    ) -> Callable[P, Result[R]]:
         # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
         #     if Callable returns Any.
         ...
+
+
+@overload
+def with_err[**P, R](
+        func: Callable[P, R], /
+) -> Callable[P, Result[R]]:
+    # Overload 5: Called directly with a function -> with_err(func)
+    # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+    #     if Callable returns Any.
+    ...
 
 
 @overload
@@ -77,10 +40,23 @@ def with_err[**P, R](
     ...
 
 
+# @type_check_only
+class AsyncDecorator(Protocol):
+    '''
+    helper protocol for indirect decorators
+    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+        if Callable returns Any.
+    '''
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, Coroutine[Any, Any, R]], /
+    ) -> Callable[P, Coroutine[Any, Any, Result[R]]]: ...
+
+
 @overload
-def with_err[**P, R](
+def with_async_err[**P, R](
         func: Callable[P, Coroutine[Any, Any, R]], /
-) -> CoroutineWithErr[P, R]:
+) -> Callable[P, Coroutine[Any, Any, Result[R]]]:
     # Overload 4: Async call with a function -> with_err(func)
     # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
     #     if Callable returns Any.
@@ -88,34 +64,78 @@ def with_err[**P, R](
 
 
 @overload
-def with_err[**P, R](
-        func: Callable[P, AsyncGenerator[R, Any]], /
-) -> AsyncGeneratorWithErr[P, R]:
-    # Overload 2: async generator directly with a function -> with_err(func)
+def with_async_err[**P, R](
+        *exceptions: type[Exception],
+) -> AsyncDecorator:
+    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
     ...
 
 
+# @type_check_only
+class GenDecorator(Protocol):
+    '''
+    helper protocol for indirect decorators
+    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+        if Callable returns Any.
+    '''
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, Generator[R, Any, Any]], /
+    ) -> Callable[P, Generator[Result[R], None, None]]: ...
+
+
 @overload
-def with_err[**P, R](
+def with_gen_err[**P, R](
         func: Callable[P, Generator[R, Any, Any]], /
-) -> GeneratorWithErr[P, R]:
+) -> Callable[P, Generator[Result[R], None, None]]:
     # Overload 3: generator directly with a function -> with_err(func)
     ...
 
 
 @overload
-def with_err[**P, R](
-        func: Callable[P, R], /
-) -> CallableWithErr[P, R]:
-    # Overload 5: Called directly with a function -> with_err(func)
-    # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-    #     if Callable returns Any.
+def with_gen_err[**P, R](
+        *exceptions: type[Exception],
+) -> GenDecorator:
+    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
+    ...
+
+
+# @type_check_only
+class AsyncGenDecorator(Protocol):
+    '''
+    helper protocol for indirect decorators
+    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
+        if Callable returns Any.
+    '''
+    @overload
+    def __call__[**P, R](
+        self, func: Callable[P, AsyncGenerator[R, Any]], /
+    ) -> Callable[P, AsyncGenerator[Result[R], Any]]: ...
+
+
+@overload
+def with_async_gen_err[**P, R](
+        func: Callable[P, AsyncGenerator[R, Any]], /
+) -> Callable[P, AsyncGenerator[Result[R], Any]]:
+    # Overload 2: async generator directly with a function -> with_err(func)
+    ...
+
+
+@overload
+def with_async_gen_err[**P, R](
+        *exceptions: type[Exception],
+) -> AsyncGenDecorator:
+    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
     ...
 
 
 def with_err(*args):
     """
-    Wraps a function to return (result, Exception) instead of raising.
+    Wraps a sync-function to return (result, Exception) instead of raising.
+
+    Use with_async_err for async function.
+    Use with_gen_err for generator.
+    Use with_async_gen_err for async generator.
     """
     is_func = len(args) == 1 and callable(args[0]) and not (
         isinstance(args[0], type) and issubclass(args[0], Exception))
@@ -135,13 +155,46 @@ def with_err(*args):
     return decorator
 
 
+def with_async_err(*args):
+    """
+    Wraps an async-function to return (result, Exception) instead of raising.
+
+    Use with_err for sync-function.
+    Use with_gen_err for generator.
+    Use with_async_gen_err for async generator.
+    """
+    return with_err(*args)
+
+
+def with_gen_err(*args):
+    """
+    Wraps a generator to return (result, Exception) instead of raising.
+
+    Use with_err for sync-function.
+    Use with_async_err for async function.
+    Use with_async_gen_err for async generator.
+    """
+    return with_err(*args)
+
+
+def with_async_gen_err(*args):
+    """
+    Wraps an async-generator to return (result, Exception) instead of raising.
+
+    Use with_err for sync-function.
+    Use with_async_err for async function.
+    Use with_gen_err for generator.
+    """
+    return with_err(*args)
+
+
 def _make_wrapper(func, exceptions):
     if inspect.iscoroutinefunction(func):
         return _make_async_wrapper(func, exceptions)
     elif inspect.isasyncgenfunction(func):
         return _make_async_gen_wrapper(func, exceptions)
     elif inspect.isgeneratorfunction(func):
-        return _make_sync_gen_wrapper(func, exceptions)
+        return _make_gen_wrapper(func, exceptions)
     else:
         return _make_sync_wrapper(func, exceptions)
 
@@ -149,7 +202,7 @@ def _make_wrapper(func, exceptions):
 def _make_sync_wrapper[**P, R](
         func: Callable[P, R],
         exceptions: tuple[type[Exception], ...],
-) -> CallableWithErr[P, R]:
+) -> Callable[P, Result[R]]:
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Result[R]:
         try:
@@ -162,7 +215,7 @@ def _make_sync_wrapper[**P, R](
 def _make_async_wrapper[**P, R](
         func: Callable[P, Coroutine[Any, Any, R]],
         exceptions: tuple[type[Exception], ...]
-) -> CoroutineWithErr[P, R]:
+) -> Callable[P, Coroutine[Any, Any, Result[R]]]:
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
         try:
@@ -173,12 +226,12 @@ def _make_async_wrapper[**P, R](
     return async_wrapper
 
 
-def _make_sync_gen_wrapper[**P, R](
+def _make_gen_wrapper[**P, R](
         func: Callable[P, Generator[R, Any, Any]],
         exceptions: tuple[type[Exception], ...],
-) -> GeneratorWithErr[P, R]:
+) -> Callable[P, Generator[Result[R], None, None]]:
     @wraps(func)
-    def sync_gen_wrapper(*args, **kwargs):
+    def gen_wrapper(*args, **kwargs):
         gen = func(*args, **kwargs)
         while True:
             try:
@@ -189,13 +242,13 @@ def _make_sync_gen_wrapper[**P, R](
             except exceptions as err:
                 yield None, err
                 return
-    return sync_gen_wrapper
+    return gen_wrapper
 
 
 def _make_async_gen_wrapper[**P, R](
         func: Callable[P, AsyncGenerator[R, Any]],
         exceptions: tuple[type[Exception], ...],
-) -> AsyncGeneratorWithErr[P, R]:
+) -> Callable[P, AsyncGenerator[Result[R], Any]]:
     @wraps(func)
     async def async_gen_wrapper(*args, **kwargs):
         gen = func(*args, **kwargs)
