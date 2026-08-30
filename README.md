@@ -123,14 +123,14 @@ assert data is None
 ### Async Functions
 
 ```python
-from with_err import with_err
+from with_err import with_async_err
 
 async def async_fetch_data(endpoint: str) -> dict[str, str]:
     if endpoint == "bad":
         raise ValueError("Failed to reach endpoint")
     return {"status": "ok"}
 
-async_fetch_data_e = with_err(async_fetch_data)
+async_fetch_data_e = with_async_err(async_fetch_data)
 res, err = await async_fetch_data_e("bad")
 assert isinstance(err, ValueError)
 assert res is None
@@ -139,10 +139,10 @@ assert res is None
 ### Generators
 
 ```python
-from with_err import with_err
+from with_err import with_gen_err
 
 
-@with_err
+@with_gen_err
 def my_stream():
     yield 1
     raise ValueError('invalid')
@@ -159,10 +159,10 @@ for idx, (each, err) in enumerate(my_stream()):
 ### Async Generators
 
 ```python
-from with_err import with_err
+from with_err import with_async_gen_err
 
 
-@with_err
+@with_async_gen_err
 async def my_async_stream():
     yield 1
     raise ValueError('invalid')

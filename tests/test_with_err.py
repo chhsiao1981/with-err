@@ -1,10 +1,18 @@
 import inspect
 import json
 import re
+from typing import Self
 
 import pytest
 
-from with_err import Result, get_err_strs, with_err
+from with_err import (
+    Result,
+    get_err_strs,
+    with_async_err,
+    with_async_gen_err,
+    with_err,
+    with_gen_err,
+)
 
 
 def test_with_err_success():
@@ -199,7 +207,7 @@ async def test_with_err_async_err():
     '''
     test async err
     '''
-    async_fetch_data_e = with_err(async_fetch_data)
+    async_fetch_data_e = with_async_err(async_fetch_data)
     res, err = await async_fetch_data_e("bad")
     err_stack = get_err_strs(err)
     err_str = '\n'.join(err_stack)
@@ -216,7 +224,7 @@ async def test_with_err_async_success():
     '''
     test async err
     '''
-    async_fetch_data_e = with_err(async_fetch_data)
+    async_fetch_data_e = with_async_err(async_fetch_data)
     res, err = await async_fetch_data_e("good")
 
     assert err is None
@@ -228,7 +236,7 @@ async def test_with_err_async_err_specified_error():
     '''
     test async err (ValueError)
     '''
-    async_fetch_data_e = with_err(ValueError)(async_fetch_data)
+    async_fetch_data_e = with_async_err(ValueError)(async_fetch_data)
     res, err = await async_fetch_data_e("bad")
     err_stack = get_err_strs(err)
     err_str = '\n'.join(err_stack)
@@ -240,7 +248,31 @@ async def test_with_err_async_err_specified_error():
     assert re.search(r'ValueError: Failed to reach endpoint', err_str)
 
 
-@with_err
+# async test
+@with_async_err
+async def async_fetch_data2_e(endpoint: str) -> dict[str, str]:
+    if endpoint == "bad":
+        raise ValueError("Failed to reach endpoint")
+    return {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_err_decorator():
+    '''
+    test async err (ValueError)
+    '''
+    res, err = await async_fetch_data2_e("bad")
+    err_stack = get_err_strs(err)
+    err_str = '\n'.join(err_stack)
+    print(f'err_str: {err_str}')
+    assert isinstance(err, ValueError)
+    assert res is None
+    assert re.search(r'with_err.py", line \d+, in async_wrapper', err_str)
+    assert re.search(r'test_with_err.py", line \d+, in async_fetch_data', err_str)
+    assert re.search(r'ValueError: Failed to reach endpoint', err_str)
+
+
+@with_gen_err
 def my_stream():
     yield 1
     raise ValueError('invalid')
@@ -256,7 +288,7 @@ def test_with_err_yield():
             assert isinstance(err, ValueError)
 
 
-@with_err
+@with_gen_err
 def my_stream2():
     idx = 0
 
@@ -280,7 +312,7 @@ def test_with_err_yield_success():
     assert end_idx == 2
 
 
-@with_err
+@with_async_gen_err
 async def my_async_stream():
     yield 1
     raise ValueError('invalid')
@@ -297,7 +329,7 @@ async def test_with_err_async_yield():
             assert isinstance(err, ValueError)
 
 
-@with_err
+@with_async_gen_err
 async def my_async_stream2():
     idx = 0
 
@@ -338,7 +370,7 @@ async def test_with_err_async_yield_success2():
         await anext(gen)
 
 
-@with_err
+@with_async_gen_err
 async def my_async_stream3():
     idx = 0
 
@@ -457,3 +489,101 @@ def test_result():
 
     ret2: Result[str] = 'temp', None
     assert ret == ret2
+
+
+class Temp2:
+    my_str = 'Temp2'
+
+    def __init__(self: Self):
+        pass
+
+
+class Temp:
+    @with_err
+    def my_str(self: Self):
+        return 'Temp'
+
+    @with_err()
+    def my_model2[T](self, model: type[T]) -> T:
+        ret = model()
+        return ret
+
+    def my_model3[T](self, model: type[T]) -> T:
+        ret = model()
+        return ret
+
+    @with_async_err
+    async def my_model4[T](self: Self, model: type[T]):
+        ret = model()
+        return ret
+
+    @with_gen_err
+    def my_model5[T](self: Self, model: type[T]):
+        ret = model()
+        yield ret
+
+    @with_async_gen_err
+    async def my_model6[T](self: Self, model: type[T]):
+        ret = model()
+        yield ret
+
+    @with_async_gen_err
+    async def my_model7[T](self: Self, model: type[T]):
+        ret = await self.temp(model)
+        yield ret
+
+    async def temp[T](self: Self, model: type[T]):
+        ret = model()
+        return ret
+
+    def __init__(self: Self):
+        pass
+
+
+@pytest.mark.asyncio
+async def test_class_func():
+    temp = Temp()
+
+    ret = temp.my_str()
+    temp_str, err = ret
+    assert err is None
+    assert temp_str == 'Temp'
+
+    # sync-function
+    ret2 = temp.my_model2(Temp2)
+    temp2, err = ret2
+    assert err is None
+    assert temp2 is not None
+    assert isinstance(temp2, Temp2)
+    assert temp2.my_str == 'Temp2'
+
+    # with_err as function
+    ret3 = with_err(temp.my_model3)(Temp2)
+    temp3, err = ret3
+    assert err is None
+    assert temp3 is not None
+    assert isinstance(temp3, Temp2)
+    assert temp3.my_str == 'Temp2'
+
+    # async function
+    ret4 = await temp.my_model4(Temp2)
+    temp4, err = ret4
+    assert err is None
+    assert temp4 is not None
+    assert isinstance(temp4, Temp2)
+    assert temp4.my_str == 'Temp2'
+
+    # generator
+    for each_ret, err in temp.my_model5(Temp2):
+        assert err is None
+        assert isinstance(each_ret, Temp2)
+
+    # async generator
+    async for each_ret6, err in temp.my_model6(Temp2):
+        assert err is None
+        assert isinstance(each_ret6, Temp2)
+
+    # async generator
+    async for each_ret7, err in temp.my_model7(Temp2):
+        assert err is None
+        assert isinstance(each_ret7, Temp2)
