@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from with_err import get_err_strs, with_err
+from with_err import Result, get_err_strs, with_err
 
 
 def test_with_err_success():
@@ -390,8 +390,8 @@ async def test_with_err_async_yield3_anext():
 
 
 @with_err
-def my_json_re4(a: str):
-    data, err = my_json_re5(a)
+def my_re4(a: str):
+    data, err = my_re5(a)
     if err is not None:
         raise err
 
@@ -399,7 +399,7 @@ def my_json_re4(a: str):
 
 
 @with_err
-def my_json_re5(a: str):
+def my_re5(a: str):
     return re.search(r'[asdas', a)
 
 
@@ -408,7 +408,7 @@ def test_with_err_continuous_with_err():
     multi-layer @with_err functions with.
     '''
     a = '{"test": }'
-    the_struct, err = my_json_re4(a)
+    the_struct, err = my_re4(a)
 
     assert the_struct is None
     assert err is not None
@@ -418,8 +418,8 @@ def test_with_err_continuous_with_err():
     assert isinstance(err, re.PatternError)
 
     assert re.search(r'with_err.py", line \d+, in wrapper', err_str)
-    assert re.search(r'test_with_err.py", line \d+, in my_json_re4', err_str)
-    assert re.search(r'test_with_err.py", line \d+, in my_json_re5', err_str)
+    assert re.search(r'test_with_err.py", line \d+, in my_re4', err_str)
+    assert re.search(r'test_with_err.py", line \d+, in my_re5', err_str)
     assert re.search(r're/__init__.py", line \d+, in search', err_str)
     assert 're.PatternError: unterminated character set at position 0' in err_str
 
@@ -442,3 +442,18 @@ def test_with_err_list_func():
     item1, item2 = data
     assert item1 == 1
     assert item2 == 2
+
+
+@with_err
+def my_str():
+    return 'temp'
+
+
+def test_result():
+    ret = my_str()
+    temp_str, err = ret
+    assert err is None
+    assert temp_str == 'temp'
+
+    ret2: Result[str] = 'temp', None
+    assert ret == ret2
