@@ -10,15 +10,11 @@ type Result[R] = tuple[R, None] | tuple[None, Exception]
 class Decorator(Protocol):
     '''
     helper protocol for indirect decorators
-    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-        if Callable returns Any.
     '''
     @overload
     def __call__[**P, R](
         self, func: Callable[P, R], /
     ) -> Callable[P, Result[R]]:
-        # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-        #     if Callable returns Any.
         ...
 
 
@@ -26,9 +22,10 @@ class Decorator(Protocol):
 def with_err[**P, R](
         func: Callable[P, R], /
 ) -> Callable[P, Result[R]]:
-    # Overload 5: Called directly with a function -> with_err(func)
-    # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-    #     if Callable returns Any.
+    # Overload 1:
+    #   Called directly with a function.
+    #
+    #   ex: with_err(func)
     ...
 
 
@@ -36,30 +33,32 @@ def with_err[**P, R](
 def with_err[**P, R](
         *exceptions: type[Exception],
 ) -> Decorator:
-    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
+    # Overload 2:
+    #   called with exception types or no args.
+    #
+    #   ex: with_err(*exceptions)(func)
     ...
 
 
 # @type_check_only
 class AsyncDecorator(Protocol):
     '''
-    helper protocol for indirect decorators
-    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-        if Callable returns Any.
+    helper protocol for indirect async decorators
     '''
     @overload
     def __call__[**P, R](
-        self, func: Callable[P, Coroutine[Any, Any, R]], /
+        self, async_func: Callable[P, Coroutine[Any, Any, R]], /
     ) -> Callable[P, Coroutine[Any, Any, Result[R]]]: ...
 
 
 @overload
 def with_async_err[**P, R](
-        func: Callable[P, Coroutine[Any, Any, R]], /
+        async_func: Callable[P, Coroutine[Any, Any, R]], /
 ) -> Callable[P, Coroutine[Any, Any, Result[R]]]:
-    # Overload 4: Async call with a function -> with_err(func)
-    # XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-    #     if Callable returns Any.
+    # Overload 1:
+    #   async call with a function.
+    #
+    #   ex: with_async_err(async_func)
     ...
 
 
@@ -67,7 +66,10 @@ def with_async_err[**P, R](
 def with_async_err[**P, R](
         *exceptions: type[Exception],
 ) -> AsyncDecorator:
-    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
+    # Overload 2:
+    #   called with exception types or no args.
+    #
+    #   ex: with_async_err(*exceptions)(async_func)
     ...
 
 
@@ -75,20 +77,21 @@ def with_async_err[**P, R](
 class GenDecorator(Protocol):
     '''
     helper protocol for indirect decorators
-    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-        if Callable returns Any.
     '''
     @overload
     def __call__[**P, R](
-        self, func: Callable[P, Generator[R, Any, Any]], /
+        self, gen: Callable[P, Generator[R, Any, Any]], /
     ) -> Callable[P, Generator[Result[R], None, None]]: ...
 
 
 @overload
 def with_gen_err[**P, R](
-        func: Callable[P, Generator[R, Any, Any]], /
+        gen: Callable[P, Generator[R, Any, Any]], /
 ) -> Callable[P, Generator[Result[R], None, None]]:
-    # Overload 3: generator directly with a function -> with_err(func)
+    # Overload 1:
+    #   generator directly with a function.
+    #
+    #   ex: with_gen_err(gen)
     ...
 
 
@@ -96,7 +99,10 @@ def with_gen_err[**P, R](
 def with_gen_err[**P, R](
         *exceptions: type[Exception],
 ) -> GenDecorator:
-    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
+    # Overload 2:
+    #   called with exception types or no args.
+    #
+    #   ex: with_gen_err(*exceptions)(gen)
     ...
 
 
@@ -104,20 +110,21 @@ def with_gen_err[**P, R](
 class AsyncGenDecorator(Protocol):
     '''
     helper protocol for indirect decorators
-    XXX currently CallableWithErr is misclassfied as CoroutineWithErr
-        if Callable returns Any.
     '''
     @overload
     def __call__[**P, R](
-        self, func: Callable[P, AsyncGenerator[R, Any]], /
+        self, async_gen: Callable[P, AsyncGenerator[R, Any]], /
     ) -> Callable[P, AsyncGenerator[Result[R], Any]]: ...
 
 
 @overload
 def with_async_gen_err[**P, R](
-        func: Callable[P, AsyncGenerator[R, Any]], /
+        async_gen: Callable[P, AsyncGenerator[R, Any]], /
 ) -> Callable[P, AsyncGenerator[Result[R], Any]]:
-    # Overload 2: async generator directly with a function -> with_err(func)
+    # Overload 1:
+    #   async generator directly with a function.
+    #
+    #   ex: with_async_gen_err(async_gen)
     ...
 
 
@@ -125,7 +132,10 @@ def with_async_gen_err[**P, R](
 def with_async_gen_err[**P, R](
         *exceptions: type[Exception],
 ) -> AsyncGenDecorator:
-    # Overload 1: called with exception types or no args -> with_err(*exceptions)(func)
+    # Overload 2:
+    #   called with exception types or no args.
+    #
+    #   ex: with_async_gen_err(*exceptions)(async_gen)
     ...
 
 
