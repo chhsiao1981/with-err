@@ -28,17 +28,11 @@ def get_results_or_none[T](results: Iterable[Result[T]]) -> list[T | None]:
 
 
 def is_any_err[T](results: Iterable[Result[T]]) -> bool:
-    for each in results:
-        if each[1] is not None:
-            return True
-    return False
+    return any(each[1] is not None for each in results)
 
 
 def is_all_err[T](results: Iterable[Result[T]]) -> bool:
-    for each in results:
-        if each[1] is None:
-            return False
-    return True
+    return all(each[1] is not None for each in results)
 
 
 def get_first_err[T](results: Iterable[Result[T]]) -> Exception | None:
