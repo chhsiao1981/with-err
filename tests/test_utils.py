@@ -9,7 +9,7 @@ def test_get_err_strs():
     try:
         a = json.loads('{')
         print(f'a: {a}')
-    except Exception as e:  # ruff: ignore[blind-except]
+    except Exception as e:
         e_strs = get_err_strs(e)
         e_str = '\n'.join(e_strs)
 

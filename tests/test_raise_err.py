@@ -30,6 +30,8 @@ def my_raise_err():
 def test_get_parent_frame():
 
     frame = call_raise_err()
+    assert frame is not None
+
     print(f'test_get_parent_frame: filename: {frame.f_code.co_filename} lineno: {frame.f_lineno}')
 
     assert os.path.basename(frame.f_code.co_filename) == 'test_raise_err.py'

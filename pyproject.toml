@@ -55,3 +55,9 @@ extend-select = [
     'E',
     'W',
 ]
+ignore = [
+    "EXE001",
+    "BLE001",
+    "LOG015",
+    "TRY002",
+]
