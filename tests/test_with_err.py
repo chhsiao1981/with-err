@@ -9,9 +9,13 @@ from with_err import (
     Result,
     get_err_strs,
     with_async_err,
+    with_async_exc,
     with_async_gen_err,
+    with_async_gen_exc,
     with_err,
+    with_exc,
     with_gen_err,
+    with_gen_exc,
 )
 
 
@@ -19,7 +23,7 @@ def test_with_err_success():
     '''
     success.
     '''
-    json_loads_e = with_err()(json.loads)
+    json_loads_e = with_err(json.loads)
     signature = inspect.signature(json_loads_e)
     sig_dict = {
         name: {
@@ -79,7 +83,7 @@ def test_with_err_exception():
     '''
     Exception.
     '''
-    json_loads_e = with_err()(json.loads)
+    json_loads_e = with_exc()(json.loads)
 
     a = '{"test": }'
     the_struct, err = json_loads_e(a)
@@ -100,7 +104,7 @@ def test_with_err_re_pattern_error_on_json():
     Exception.
     '''
     with pytest.raises(json.decoder.JSONDecodeError):
-        json_loads_e = with_err(re.PatternError)(json.loads)
+        json_loads_e = with_exc(re.PatternError)(json.loads)
 
         a = '{"test": }'
         json_loads_e(a)
@@ -109,6 +113,11 @@ def test_with_err_re_pattern_error_on_json():
 @with_err
 def my_json_loads(a: str):
     return json.loads(a)
+
+
+@with_exc()
+def my_re_search6(pattern: str, string: str):
+    return re.search(pattern, string)
 
 
 def test_with_err_decorator():
@@ -127,6 +136,11 @@ def test_with_err_decorator():
     assert re.search(r'test_with_err.py", line \d+, in my_json_loads', err_str)
     assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
     assert 'json.decoder.JSONDecodeError: Expecting value: line 1 column 10 (char 9)' in err_str
+
+    ret, err2 = my_re_search6(r'\d+', '123456')
+
+    assert err2 is None
+    assert ret is not None
 
 
 def my_json_loads2(a: str):
@@ -163,7 +177,7 @@ def test_with_err_typed_output():
     '''
     success.
     '''
-    re_search_e = with_err()(re.search)
+    re_search_e = with_exc()(re.search)
 
     a = '{"test": 1}'
     match, err = re_search_e(r'test', a)
@@ -236,7 +250,7 @@ async def test_with_err_async_err_specified_error():
     '''
     test async err (ValueError)
     '''
-    async_fetch_data_e = with_async_err(ValueError)(async_fetch_data)
+    async_fetch_data_e = with_async_exc(ValueError)(async_fetch_data)
     res, err = await async_fetch_data_e("bad")
     err_stack = get_err_strs(err)
     err_str = '\n'.join(err_stack)
@@ -288,6 +302,39 @@ def test_with_err_yield():
             assert isinstance(err, ValueError)
 
 
+@with_gen_exc(ValueError)
+def my_stream3():
+    yield 3
+    raise ValueError('invalid')
+
+
+def test_with_err_yield3():
+    for idx, (each, err) in enumerate(my_stream()):
+        if idx == 0:
+            assert each == 1
+            assert err is None
+        else:
+            assert each is None
+            assert isinstance(err, ValueError)
+
+
+@with_gen_exc(re.PatternError)
+def my_stream4():
+    yield 3
+    raise ValueError('invalid')
+
+
+def test_with_err_yield4():
+    with pytest.raises(ValueError):
+        for idx, (each, err) in enumerate(my_stream4()):
+            if idx == 0:
+                assert each == 3
+                assert err is None
+            else:
+                assert each is None
+                assert isinstance(err, ValueError)
+
+
 @with_gen_err
 def my_stream2():
     idx = 0
@@ -313,14 +360,14 @@ def test_with_err_yield_success():
 
 
 @with_async_gen_err
-async def my_async_stream():
+async def my_async_stream_e():
     yield 1
     raise ValueError('invalid')
 
 
 @pytest.mark.asyncio
 async def test_with_err_async_yield():
-    async for each, err in my_async_stream():
+    async for each, err in my_async_stream_e():
         if each == 1:
             assert each == 1
             assert err is None
@@ -481,7 +528,10 @@ def my_str():
     return 'temp'
 
 
-def test_result():
+def test_result_eq():
+    '''
+    test that Result[str] can be directly == (with == tuples).
+    '''
     ret = my_str()
     temp_str, err = ret
     assert err is None
@@ -489,6 +539,40 @@ def test_result():
 
     ret2: Result[str] = 'temp', None
     assert ret == ret2
+
+
+@with_async_gen_exc()
+async def my_async_stream5_e():
+    yield 1
+    raise ValueError('invalid')
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_yield5():
+    async for each, err in my_async_stream5_e():
+        if each == 1:
+            assert each == 1
+            assert err is None
+        else:
+            assert each is None
+            assert isinstance(err, ValueError)
+
+
+@with_async_gen_exc(re.PatternError)
+async def my_async_stream6_e():
+    yield 3
+    raise ValueError('invalid')
+
+
+@pytest.mark.asyncio
+async def test_with_err_async_yield6():
+    with pytest.raises(ValueError):
+        async for each, err in my_async_stream6_e():
+            if each == 3:
+                assert err is None
+            else:
+                assert each is None
+                assert isinstance(err, ValueError)
 
 
 class Temp2:
@@ -503,7 +587,7 @@ class Temp:
     def my_str(self: Self):
         return 'Temp'
 
-    @with_err()
+    @with_exc()
     def my_model2[T](self, model: type[T]) -> T:
         ret = model()
         return ret

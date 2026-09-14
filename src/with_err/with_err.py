@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from functools import wraps
-from typing import Any, Protocol, overload
+from typing import Any, Protocol
 
 type Result[R] = tuple[R, None] | tuple[None, Exception]
 
@@ -11,33 +11,11 @@ class Decorator(Protocol):
     '''
     helper protocol for indirect decorators
     '''
-    @overload
+
     def __call__[**P, R](
         self, func: Callable[P, R], /
     ) -> Callable[P, Result[R]]:
         ...
-
-
-@overload
-def with_err[**P, R](
-        func: Callable[P, R], /
-) -> Callable[P, Result[R]]:
-    # Overload 1:
-    #   Called directly with a function.
-    #
-    #   ex: with_err(func)
-    ...
-
-
-@overload
-def with_err[**P, R](
-        *exceptions: type[Exception],
-) -> Decorator:
-    # Overload 2:
-    #   called with exception types or no args.
-    #
-    #   ex: with_err(*exceptions)(func)
-    ...
 
 
 # @type_check_only
@@ -45,32 +23,10 @@ class AsyncDecorator(Protocol):
     '''
     helper protocol for indirect async decorators
     '''
-    @overload
+
     def __call__[**P, R](
         self, async_func: Callable[P, Coroutine[Any, Any, R]], /
     ) -> Callable[P, Coroutine[Any, Any, Result[R]]]: ...
-
-
-@overload
-def with_async_err[**P, R](
-        async_func: Callable[P, Coroutine[Any, Any, R]], /
-) -> Callable[P, Coroutine[Any, Any, Result[R]]]:
-    # Overload 1:
-    #   async call with a function.
-    #
-    #   ex: with_async_err(async_func)
-    ...
-
-
-@overload
-def with_async_err[**P, R](
-        *exceptions: type[Exception],
-) -> AsyncDecorator:
-    # Overload 2:
-    #   called with exception types or no args.
-    #
-    #   ex: with_async_err(*exceptions)(async_func)
-    ...
 
 
 # @type_check_only
@@ -78,32 +34,10 @@ class GenDecorator(Protocol):
     '''
     helper protocol for indirect decorators
     '''
-    @overload
+
     def __call__[**P, R](
         self, gen: Callable[P, Generator[R, Any, Any]], /
     ) -> Callable[P, Generator[Result[R], None, None]]: ...
-
-
-@overload
-def with_gen_err[**P, R](
-        gen: Callable[P, Generator[R, Any, Any]], /
-) -> Callable[P, Generator[Result[R], None, None]]:
-    # Overload 1:
-    #   generator directly with a function.
-    #
-    #   ex: with_gen_err(gen)
-    ...
-
-
-@overload
-def with_gen_err[**P, R](
-        *exceptions: type[Exception],
-) -> GenDecorator:
-    # Overload 2:
-    #   called with exception types or no args.
-    #
-    #   ex: with_gen_err(*exceptions)(gen)
-    ...
 
 
 # @type_check_only
@@ -111,35 +45,169 @@ class AsyncGenDecorator(Protocol):
     '''
     helper protocol for indirect decorators
     '''
-    @overload
+
     def __call__[**P, R](
         self, async_gen: Callable[P, AsyncGenerator[R, Any]], /
     ) -> Callable[P, AsyncGenerator[Result[R], Any]]: ...
 
 
-@overload
+def with_err[**P, R](
+        func: Callable[P, R], /
+) -> Callable[P, Result[R]]:
+    """
+    Wraps a sync function to return `(result, Exception)` instead of raising.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+    """
+    return _with_err(func)  # pyright: ignore (_with_err accepts all with-err funcs)
+
+
+def with_exc(
+        *exceptions: type[Exception],
+) -> Decorator:
+    """
+    Wraps a sync function to return `(result, exception)` instead of raising.
+
+    Other kinds of Exceptions will still be raised.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+
+    """
+
+    return _with_err(*exceptions)  # pyright: ignore (_with_err accepts all with-err funcs)
+
+
+def with_async_err[**P, R](
+        async_func: Callable[P, Coroutine[Any, Any, R]], /
+) -> Callable[P, Coroutine[Any, Any, Result[R]]]:
+    """
+    Wraps an async-function to return `(result, Exception)` instead of raising.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+    """
+    return _with_err(async_func)  # pyright: ignore (_with_err accepts all with-err funcs)
+
+
+def with_async_exc(
+        *exceptions: type[Exception],
+) -> AsyncDecorator:
+    """
+    Wraps an async-function to return `(result, exception)` instead of raising.
+
+    Other kinds of Exceptions will still be raised.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+    """
+    return _with_err(*exceptions)  # pyright: ignore (_with_err accepts all with-err funcs)
+
+
+def with_gen_err[**P, R](
+    gen: Callable[P, Generator[R, Any, Any]], /
+) -> Callable[P, Generator[Result[R], None, None]]:
+    """
+    Wraps a generator to return `(result, Exception)` instead of raising.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+    """
+    return _with_err(gen)  # pyright: ignore (_with_err accepts all with-err funcs)
+
+
+def with_gen_exc(
+        *exceptions: type[Exception],
+) -> GenDecorator:  # pyright: ignore[reportInvalidTypeVarUse]
+    """
+    Wraps a generator to return `(result, Exception)` instead of raising.
+
+    Other kinds of Exceptions will still be raised.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+    """
+    return _with_err(*exceptions)  # pyright: ignore (_with_err accepts all with-err funcs)
+
+
 def with_async_gen_err[**P, R](
         async_gen: Callable[P, AsyncGenerator[R, Any]], /
 ) -> Callable[P, AsyncGenerator[Result[R], Any]]:
-    # Overload 1:
-    #   async generator directly with a function.
-    #
-    #   ex: with_async_gen_err(async_gen)
-    ...
+    """
+    Wraps an async-generator to return `(result, Exception)` instead of raising.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+
+    """
+    return _with_err(async_gen)   # pyright: ignore reason: false alarm
 
 
-@overload
-def with_async_gen_err[**P, R](
+def with_async_gen_exc(
         *exceptions: type[Exception],
 ) -> AsyncGenDecorator:
-    # Overload 2:
-    #   called with exception types or no args.
-    #
-    #   ex: with_async_gen_err(*exceptions)(async_gen)
-    ...
+    """
+    Wraps an async-generator to return `(result, exception)` instead of raising.
+
+    Other kinds of Exceptions will still be raised.
+
+    * use `with_err` for sync function.
+    * use `with_exc` for sync function with exceptions.
+    * use `with_async_err` for async function.
+    * use `with_async_exc` for async function with exceptions.
+    * use `with_gen_err` for generator.
+    * use `with_gen_exc` for generator with exceptions.
+    * use `with_async_gen_err` for async generator.
+    * use `with_async_gen_exc` for async generator with exceptions.
+
+    """
+    return _with_err(*exceptions)  # pyright: ignore (_with_err accepts all with-err funcs)
 
 
-def with_err(*args):
+def _with_err(*args):  # pyright: ignore reason: false alarm
     """
     Wraps a sync-function to return (result, Exception) instead of raising.
 
@@ -163,39 +231,6 @@ def with_err(*args):
     def decorator(func):
         return _make_wrapper(func, exceptions)
     return decorator
-
-
-def with_async_err(*args):
-    """
-    Wraps an async-function to return (result, Exception) instead of raising.
-
-    Use with_err for sync-function.
-    Use with_gen_err for generator.
-    Use with_async_gen_err for async generator.
-    """
-    return with_err(*args)
-
-
-def with_gen_err(*args):
-    """
-    Wraps a generator to return (result, Exception) instead of raising.
-
-    Use with_err for sync-function.
-    Use with_async_err for async function.
-    Use with_async_gen_err for async generator.
-    """
-    return with_err(*args)
-
-
-def with_async_gen_err(*args):
-    """
-    Wraps an async-generator to return (result, Exception) instead of raising.
-
-    Use with_err for sync-function.
-    Use with_async_err for async function.
-    Use with_gen_err for generator.
-    """
-    return with_err(*args)
 
 
 def _make_wrapper(func, exceptions):
