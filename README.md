@@ -51,15 +51,15 @@ assert isinstance(err, json.decoder.JSONDecodeError)
 assert data is None
 ```
 
-### `with_err` with Specified Exceptions
+### `with_exc` with Specified Exceptions
 
 Return err only with specified exceptions and raise other exceptions.
 
 ```python
 import json
-from with_err import with_err
+from with_err import with_exc
 
-@with_err(json.decoder.JSONDecodeError)
+@with_exc(json.decoder.JSONDecodeError)
 def json_loads_e(a: str):
     return json.loads(a)
 
@@ -79,7 +79,7 @@ import json
 import re
 from with_err import with_err
 
-@with_err(re.PatternError)
+@with_exc(re.PatternError)
 def json_loads_e(a: str):
     return json.loads(a)
 
@@ -90,9 +90,9 @@ data, err = json_loads_e('{"a": }')
 # function
 
 import json
-from with_err import with_err
+from with_err import with_exc
 
-json_loads_e = with_err(json.decoder.JSONDecodeError)(json.loads)
+json_loads_e = with_exc(json.decoder.JSONDecodeError)(json.loads)
 
 data, err = json_loads_e('{"a": 1}')
 assert err is None
@@ -107,9 +107,9 @@ assert data is None
 # empty: return all Exceptions
 
 import json
-from with_err import with_err
+from with_err import with_exc
 
-json_loads_e = with_err()(json.loads)
+json_loads_e = with_exc()(json.loads)
 
 data, err = json_loads_e('{"a": 1}')
 assert err is None
@@ -234,34 +234,7 @@ assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
 assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
 ```
 
-### Raise `err`
-
-```python
-import json
-import re
-from with_err import with_err, get_err_strs, raise_err
-
-
-@with_err
-def json_loads_e(a: str):
-    return json.loads(a)
-
-def gen_err():
-    data, err = json_loads_e('{"a": }')
-    return data, raise_err(err)
-
-data, err = gen_err()
-err_stack = get_err_strs(err)
-err_str = '\n'.join(err_stack)
-assert isinstance(err, json.decoder.JSONDecodeError)
-assert len(err_stack) > 0
-assert re.search(r', line \d+, in gen_err', err_str)
-assert re.search(r', line \d+, in json_loads_e', err_str)
-assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
-assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
-```
-
-### Raise `err` with Continuous `@with_err`
+### Raise `err` with Continuous `@with_err` (Recommended)
 
 ```python
 import json
@@ -291,6 +264,84 @@ assert re.search(r', line \d+, in json_loads_e', err_str)
 assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
 assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
 ```
+
+### Raise `err`
+
+```python
+import json
+import re
+from with_err import with_err, get_err_strs, raise_err
+
+
+@with_err
+def json_loads_e(a: str):
+    return json.loads(a)
+
+def gen_err():
+    data, err = json_loads_e('{"a": }')
+    return data, raise_err(err)
+
+data, err = gen_err()
+err_stack = get_err_strs(err)
+err_str = '\n'.join(err_stack)
+assert isinstance(err, json.decoder.JSONDecodeError)
+assert len(err_stack) > 0
+assert re.search(r', line \d+, in gen_err', err_str)
+assert re.search(r', line \d+, in json_loads_e', err_str)
+assert re.search(r'json/__init__.py", line \d+, in loads', err_str)
+assert 'json.decoder.JSONDecodeError: Expecting value:' in err_str
+```
+
+### Iterables
+
+```python
+@with_err
+def echo_e(a: str):
+    return a
+
+
+def test_get_results():
+    strs = [r'[0-9', r'\d+', r'\W+', r'\d+\W+', r'[z-a]', r'\d+\W*']
+
+    rets = [echo_e(each) for each in strs]
+
+    errs = get_errs(rets)
+    assert len(errs) == 6
+    assert errs[0] is None
+    assert errs[1] is None
+    assert errs[2] is None
+    assert errs[3] is None
+    assert errs[4] is None
+    assert errs[5] is None
+
+    first_err = get_first_err(rets)
+    assert first_err is None
+
+    the_is_any_err = is_any_err(rets)
+    assert not the_is_any_err
+
+    the_is_all_err = is_all_err(rets)
+    assert not the_is_all_err
+
+    results = get_results(rets)
+    assert len(results) == 6
+    assert results[0] == r'[0-9'
+    assert results[1] == r'\d+'
+    assert results[2] == r'\W+'
+    assert results[3] == r'\d+\W+'
+    assert results[4] == r'[z-a]'
+    assert results[5] == r'\d+\W*'
+
+    results = get_results_or_none(rets)
+    assert len(results) == 6
+    assert results[0] == r'[0-9'
+    assert results[1] == r'\d+'
+    assert results[2] == r'\W+'
+    assert results[3] == r'\d+\W+'
+    assert results[4] == r'[z-a]'
+    assert results[5] == r'\d+\W*'
+```
+
 
 ## Acknowledgement
 

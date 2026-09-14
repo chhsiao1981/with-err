@@ -212,9 +212,9 @@ def echo_e(a: str):
 
 
 def test_get_results():
-    patterns = [r'[0-9', r'\d+', r'\W+', r'\d+\W+', r'[z-a]', r'\d+\W*']
+    strs = [r'[0-9', r'\d+', r'\W+', r'\d+\W+', r'[z-a]', r'\d+\W*']
 
-    rets = [echo_e(each) for each in patterns]
+    rets = [echo_e(each) for each in strs]
 
     errs = get_errs(rets)
     assert len(errs) == 6
