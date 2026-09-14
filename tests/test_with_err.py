@@ -230,7 +230,7 @@ async def test_with_err_async_err():
     assert res is None
     assert re.search(r'with_err.py", line \d+, in async_wrapper', err_str)
     assert re.search(r'test_with_err.py", line \d+, in async_fetch_data', err_str)
-    assert re.search(r'ValueError: Failed to reach endpoint', err_str)
+    assert 'ValueError: Failed to reach endpoint' in err_str
 
 
 @pytest.mark.asyncio
@@ -259,7 +259,7 @@ async def test_with_err_async_err_specified_error():
     assert res is None
     assert re.search(r'with_err.py", line \d+, in async_wrapper', err_str)
     assert re.search(r'test_with_err.py", line \d+, in async_fetch_data', err_str)
-    assert re.search(r'ValueError: Failed to reach endpoint', err_str)
+    assert 'ValueError: Failed to reach endpoint' in err_str
 
 
 # async test
@@ -283,7 +283,7 @@ async def test_with_err_async_err_decorator():
     assert res is None
     assert re.search(r'with_err.py", line \d+, in async_wrapper', err_str)
     assert re.search(r'test_with_err.py", line \d+, in async_fetch_data', err_str)
-    assert re.search(r'ValueError: Failed to reach endpoint', err_str)
+    assert 'ValueError: Failed to reach endpoint' in err_str
 
 
 @with_gen_err
